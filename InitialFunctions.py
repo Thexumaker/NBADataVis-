@@ -1,5 +1,8 @@
 import requests
 import json
+import requests
+
+
 url = "https://stats.nba.com/stats/commonallplayers?LeagueID=00&Season=2015-16&IsOnlyCurrentSeason=0"
 headers = {
 		'Host': 'stats.nba.com',
@@ -47,7 +50,7 @@ def playerShotData(playerId):
     &PointDiff=&Position=&RangeType=&RookieYear=&Season=&SeasonSegment=&SeasonType=Regular+Season&StartPeriod=\
     &StartRange=&TeamID=0&VsConference=&VsDivision=".format(playerId)
     response2 = requests.get(url,  headers=headers)
-    print(json.loads(response2.content)['resultSets'][0]['rowSet'][0])
+    print(json.loads(response2.content)['resultSets'][1]['rowSet'])
 
 def listofSeasons(start=2009,end=2020):
     listofSeasons = []
@@ -67,8 +70,24 @@ def gameLogs(season):
     'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'PLUS_MINUS', 'V
     IDEO_AVAILABLE']
     """
-    url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=ASC&League\
-    ID=00&PlayerOrTeam=T&Season={}&SeasonType=Regular+Season&Sorter=DATE".format(season)
-    response3 = requests.get(url,  headers=headers)
-    print(json.loads(response3.content)['resultSets'][0]['rowSet'][0])
-print(seasonPart(2010))
+    url = "https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=ASC&LeagueID=00&PlayerOrTeam=T&Season={}&SeasonType=Regular+Season&Sorter=DATE".format(season)
+    response3 = requests.get(url, headers=headers).json()['resultSets'][0]['rowSet']
+    return response3
+
+def teams():
+    """Variables:
+    Seasons:
+    Returns:
+    ['SEASON_ID', 'TEAM_ID', 'TEAM_ABBREVIATION', 'TEAM_NAME', 'GAME_ID', 'GAME_DATE', 'MATCHUP',
+    'WL', 'MIN', 'FGM', 'FGA', 'FG_PCT',
+    'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 'OREB', 'DREB', 'REB',
+    'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'PLUS_MINUS', 'V
+    IDEO_AVAILABLE']
+    """
+    url = "https://stats.nba.com/stats/commonteamroster?LeagueID=&Season=2019-20&TeamID=1610612747"
+    response3 = requests.get(url, headers=headers).json()['resultSets'][0]['rowSet']
+    return response3
+
+
+
+print(playerShotData(204054))

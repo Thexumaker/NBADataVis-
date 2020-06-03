@@ -1,0 +1,208 @@
+---
+title: "Plots"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("DataGatheringFunc.R")
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r}
+playerHeatMap <- function(playerName,season,clarity,restrictedArea) {
+  name <- str_replace_all(playerName, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+  if (!restrictedArea) {
+    playerdf <- filter(playerdf,SHOT_ZONE_BASIC != "Restricted Area")
+    
+  }
+playerdf$LOC_X <- as.numeric(as.character(playerdf$LOC_X))
+playerdf$LOC_Y <- as.numeric(as.character(playerdf$LOC_Y))
+xList <- c()
+yList <- c()
+count <- c()
+for ( x in seq(-260,260,by=clarity)) {
+  for (y in seq(-60,420,by=clarity)) {
+    
+      xList<- c(xList,x)
+    yList<- c(yList,y)
+    count <- c(count,nrow(filter(playerdf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)))
+  }
+}
+    
+heat <- data.frame(xList,yList,count)
+
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+
+return(ggplot(heat, aes(x=xList, y=yList)) +
+        annotation_custom(court, -250, 250, -50, 420) +
+
+      xlim(-260, 260) +
+      ylim(-60, 420)+
+  geom_tile(aes(fill = count)) +
+  scale_fill_viridis_c(option = "B", direction = -1))
+  
+
+  
+      
+    
+    
+    
+    
+  
+}
+teamHeatMap <- function(teamName,season,clarity,restrictedArea) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+    temp = 1
+for (player in teamdf$PLAYER){
+
+  
+  if (temp == 1){
+    name <- str_replace_all(player, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    result <- playerdf
+    temp = temp +1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+  }
+   
+}
+  shotDataf <- result
+  if (!restrictedArea) {
+    shotDataf <- filter(shotDataf,SHOT_ZONE_BASIC != "Restricted Area")
+    
+  }
+  shotDataf$LOC_X <- as.numeric(as.character(shotDataf$LOC_X))
+  shotDataf$LOC_Y <- as.numeric(as.character(shotDataf$LOC_Y))
+  xList <- c()
+  yList <- c()
+  count <- c()
+  for ( x in seq(-260,260,by=clarity)) {
+    for (y in seq(-60,420,by=clarity)) {
+    
+      xList<- c(xList,x)
+      yList<- c(yList,y)
+    count <- c(count,nrow(filter(shotDataf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)))
+  }
+  }
+  
+    
+heat <- data.frame(xList,yList,count)
+
+
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+
+return(ggplot(heat, aes(x=xList, y=yList)) +
+        annotation_custom(court, -250, 250, -50, 420) +
+
+      xlim(-260, 260) +
+      ylim(-60, 420)+
+  geom_tile(aes(fill = count)) +
+  scale_fill_viridis_c(option = "B", direction = -1))
+  
+
+  
+      
+    
+    
+    
+    
+  
+}
+
+
+
+
+```
+```{r}
+ppsTeam <- function (teamName,season) {
+  temp = 1
+for (id in teams(teamName,season)$PLAYER_ID){
+  
+  if (temp == 1){
+    result <- playerShotData(id,season)
+    temp = temp +1
+  }
+  else {
+    temp2 <- playerShotData(id,season)
+    result <- rbind(result,temp2)
+  }
+   
+}
+  playerdf <- result
+  
+playerdf$LOC_X <- as.numeric(as.character(playerdf$LOC_X))
+playerdf$LOC_Y <- as.numeric(as.character(playerdf$LOC_Y))
+playerdf$SHOT_TYPE[playerdf$SHOT_TYPE =="2PT Field Goal"] <- 2
+playerdf$SHOT_TYPE[playerdf$SHOT_TYPE =="3PT Field Goal"] <- 3
+playerdf$SHOT_TYPE <- as.numeric(playerdf$SHOT_TYPE) 
+playerdf$EVENT_TYPE[playerdf$EVENT_TYPE =="Missed Shot"] <- 0
+
+playerdf$EVENT_TYPE[playerdf$EVENT_TYPE =="Made Shot"] <- 1
+playerdf$EVENT_TYPE <- as.numeric(playerdf$EVENT_TYPE) 
+playerdf <- mutate(playerdf,Shot_value=SHOT_TYPE*EVENT_TYPE )
+xList <- c()
+yList <- c()
+count <- c()
+pps <- c()
+for ( x in seq(-260,260,by=15)) {
+  for (y in seq(-60,420,by=15)) {
+    
+    xList<- c(xList,x)
+    yList<- c(yList,y)
+    tempPPS <- mean(filter(playerdf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)$Shot_value )
+    if (is.nan(tempPPS) ) {
+      tempPPS <- 0
+    }
+    pps <- c(pps,tempPPS)
+
+  }
+}
+
+heat <- data.frame(xList,yList,pps)
+
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+return(ggplot(heat, aes(x=xList, y=yList)) +
+        annotation_custom(court, -250, 250, -50, 420) +
+
+      xlim(-250, 250) +
+      ylim(-50, 420)+
+  geom_tile(aes(fill = pps)) +
+  scale_fill_viridis_c(option = "B", direction = -1)
+)
+}
+
+```
+```{r}
+teamHeatMap("GSW", "2012-13",4,FALSE)
+teamHeatMap("GSW", "2016-17",4,FALSE)
+teamHeatMap("GSW", "2018-19",4,FALSE)
+
+```

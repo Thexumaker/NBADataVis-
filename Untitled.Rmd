@@ -1,0 +1,168 @@
+---
+title: "DataGatheringFuncs"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("DataGatheringFunc.R")
+
+```
+```{r}
+playerData <- getNames()
+write.csv(playerData,"playerData.csv",row.names = FALSE)
+
+for (i in listofSeasons()) {
+  #Creates a bunch of dataframes of nba game log data by season, ex
+  #NBA200910, NBA201011
+  season <- str_replace(i,"-","")
+  assign(paste0("NBA",season), gameLogs(i))
+  
+  
+}
+count = 1
+list_df = lapply(list(ls(pattern='NBA20*'))[[1]], get)
+for (i in list_df) {
+  write.csv(i,paste0("datasets/gameLogs/",list(ls(pattern='NBA20*'))[[1]][count],".csv"),row.names = FALSE)
+  count = count + 1
+}
+
+```
+```{r}
+for (season in listofSeasons()){
+  x <-  read.csv(paste0("datasets/gameLogs/NBA",extractDash(season),".csv"),stringsAsFactors = FALSE)
+  for (team in unique(x$TEAM_ABBREVIATION)) {
+    print(paste0("Doing  ",  team, " ", season))
+    tempRoster <- roster(team,season)
+    if (nrow(tempRoster) == 0) {
+      print(paste0("LOL",  team, season))
+    }
+    else {
+       write.csv(tempRoster,paste0("datasets/rosters/",team,season,".csv"),row.names = FALSE)
+      
+    }
+    Sys.sleep(2)
+   
+    
+  }
+  
+}
+
+
+
+```
+```{r}
+for(season in listofSeasons()) {
+    x <-  read.csv(paste0("datasets/gameLogs/NBA",extractDash(season),".csv"),stringsAsFactors = FALSE)
+
+  for (team in unique(x$TEAM_ABBREVIATION))  {
+    print(paste0(team,season))
+  }
+}
+```
+```{R}
+#Writing player csv data
+
+for (id in playerData[c(1279:nrow(playerData)),]$PERSON_ID) {
+  
+  shot_data = playerShotData(id,"")
+  if (shot_data != 0) {
+    name <- str_replace_all(filter(playerData, PERSON_ID == id)$DISPLAY_FIRST_LAST[[1]], fixed(" "), "")
+    print(name)
+    write.csv(shot_data,paste0("datasets/players/",name,".csv"), row.names= FALSE)
+    
+  }
+}
+
+
+```
+
+
+
+```{r}
+pps <- function () {
+  playerdf <- read.csv(paste0("datasets/players/","MarcusSmart",".csv"), stringsAsFactors = FALSE)
+  
+
+playerdf$LOC_X <- as.numeric(as.character(playerdf$LOC_X))
+playerdf$LOC_Y <- as.numeric(as.character(playerdf$LOC_Y))
+playerdf$SHOT_TYPE[playerdf$SHOT_TYPE =="2PT Field Goal"] <- 2
+playerdf$SHOT_TYPE[playerdf$SHOT_TYPE =="3PT Field Goal"] <- 3
+playerdf$SHOT_TYPE <- as.numeric(playerdf$SHOT_TYPE) 
+playerdf$EVENT_TYPE[playerdf$EVENT_TYPE =="Missed Shot"] <- 0
+
+playerdf$EVENT_TYPE[playerdf$EVENT_TYPE =="Made Shot"] <- 1
+playerdf$EVENT_TYPE <- as.numeric(playerdf$EVENT_TYPE) 
+playerdf <- mutate(playerdf,Shot_value=SHOT_TYPE*EVENT_TYPE )
+xList <- c()
+yList <- c()
+count <- c()
+pps <- c()
+for ( x in seq(-260,260,by=20)) {
+  for (y in seq(-60,420,by=20)) {
+    
+    xList<- c(xList,x)
+    yList<- c(yList,y)
+    tempPPS <- mean(filter(playerdf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)$Shot_value )
+    if (is.nan(tempPPS) ) {
+      tempPPS <- 0
+    }
+    pps <- c(pps,tempPPS)
+
+  }
+}
+
+heat <- data.frame(xList,yList,pps)
+
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+playerdf
+return(ggplot(heat, aes(x=xList, y=yList)) +
+        annotation_custom(court, -250, 250, -50, 420) +
+
+      xlim(-250, 250) +
+      ylim(-50, 420)+
+  geom_tile(aes(fill = pps)) +
+  scale_fill_viridis_c(option = "B", direction = -1)
+)
+}
+pps()
+
+
+```
+
+
+```{r}
+playerHeatMap("Trae Young","2018-19",100,FALSE)
+playerHeatMap("Trae Young","2018-19",50,FALSE)
+playerHeatMap("Trae Young","2018-19",25,FALSE)
+playerHeatMap("Trae Young","2018-19",4,FALSE)
+playerHeatMap("Trae Young","2018-19",2,FALSE)
+playerHeatMap("Trae Young","2018-19",1.5,FALSE)
+
+
+```
+```{R message=FALSE}
+teamHeatMap("GSW", "2012-13",4,FALSE)
+teamHeatMap("GSW", "2016-17",4,FALSE)
+```
+```{R}
+teamHeatMap("LAL", "2009-10",5,FALSE)
+teamHeatMap("LAL", "2012-13",5,FALSE)
+teamHeatMap("LAL", "2014-15",5,FALSE)
+teamHeatMap("LAL", "2018-19",5,FALSE)
+```
+```{R}
+teamHeatMap("NJN", "2011-12",8,FALSE)
+
+
+```
+```{r}
+teamHeatMap("DEN", "2018-19",6,True)
+```
+```{r}
+teams("LAL","2012-13")
+
+```
+
