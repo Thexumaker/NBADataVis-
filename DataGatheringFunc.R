@@ -103,4 +103,18 @@ extractDash <-function(date){
   return(season)
 }
 
+LeagueAverages <- function(season) {
+  url = paste0("https://stats.nba.com/stats/shotchartdetail?AheadBehind=&ClutchTime=&ContextFilter=&ContextMeasure=FGA&DateFrom=&DateTo=&EndPeriod=&EndRange=&GameID=&GameSegment=&LastNGames=0&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&Period=0&PlayerID=","204054","&PlayerPosition=&PointDiff=&Position=&RangeType=&RookieYear=&Season=",season,"&SeasonSegment=&SeasonType=Regular+Season&StartPeriod=&StartRange=&TeamID=0&VsConference=&VsDivision=")
+  request = GET(url,  add_headers(headers))
+  content = fromJSON(content(request, as = "text"))
+  roster <- data.frame(content$resultSets$rowSet[[2]],stringsAsFactors = FALSE)
+  colnames(roster) <- content$resultSets$headers[[2]]
+  roster$FGA <- as.numeric(roster$FGA)
+  roster$FG_PCT <- as.numeric(roster$FG_PCT)
+  roster$FGM <- as.numeric(roster$FGM)
+
+  
+  return(roster)
+  
+}
 

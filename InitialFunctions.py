@@ -35,22 +35,6 @@ def seasonPart(season):
 
 
 #Player shot data
-def playerShotData(playerId):
-    """Variables: Player ID
-    Returns:
-    ['GRID_TYPE', 'GAME_ID', 'GAME_EVENT_ID', 'PLAYER_ID', 'PLAYER_NAME', 'TEAM_ID', 'TEAM_NAME',
-     'PERIOD', 'MINUTES_REMAINING', 'SECON
-    DS_REMAINING', 'EVENT_TYPE', 'ACTION_TYPE', 'SHOT_TYPE', 'SHOT_ZONE_BASIC', 'SHOT_ZONE_AREA',
-     'SHOT_ZONE_RANGE', 'SHOT_DISTANCE', '
-    LOC_X', 'LOC_Y', 'SHOT_ATTEMPTED_FLAG', 'SHOT_MADE_FLAG', 'GAME_DATE', 'HTM', 'VTM']
-    """
-    url = "https://stats.nba.com/stats/shotchartdetail?AheadBehind=&ClutchTime=&ContextFilter=\
-    &ContextMeasure=FGA&DateFrom=&DateTo=&EndPeriod=&EndRange=&GameID=&GameSegment=&LastNGames=\
-    0&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&Period=0&PlayerID={}&PlayerPosition=\
-    &PointDiff=&Position=&RangeType=&RookieYear=&Season=&SeasonSegment=&SeasonType=Regular+Season&StartPeriod=\
-    &StartRange=&TeamID=0&VsConference=&VsDivision=".format(playerId)
-    response2 = requests.get(url,  headers=headers)
-    print(json.loads(response2.content)['resultSets'][1]['rowSet'])
 
 def listofSeasons(start=2009,end=2020):
     listofSeasons = []
@@ -88,6 +72,24 @@ def teams():
     response3 = requests.get(url, headers=headers).json()['resultSets'][0]['rowSet']
     return response3
 
+def playerShotData(playerId):
+    """Variables: Player ID
+    Returns:
+    ['GRID_TYPE', 'GAME_ID', 'GAME_EVENT_ID', 'PLAYER_ID', 'PLAYER_NAME', 'TEAM_ID', 'TEAM_NAME',
+     'PERIOD', 'MINUTES_REMAINING', 'SECON
+    DS_REMAINING', 'EVENT_TYPE', 'ACTION_TYPE', 'SHOT_TYPE', 'SHOT_ZONE_BASIC', 'SHOT_ZONE_AREA',
+     'SHOT_ZONE_RANGE', 'SHOT_DISTANCE', '
+    LOC_X', 'LOC_Y', 'SHOT_ATTEMPTED_FLAG', 'SHOT_MADE_FLAG', 'GAME_DATE', 'HTM', 'VTM']
+    """
+    url = "https://stats.nba.com/stats/shotchartdetail?AheadBehind=&ClutchTime=&ContextFilter=\
+    &ContextMeasure=FGA&DateFrom=&DateTo=&EndPeriod=&EndRange=&GameID=&GameSegment=&LastNGames=\
+    0&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&Period=0&PlayerID={}&PlayerPosition=\
+    &PointDiff=&Position=&RangeType=&RookieYear=&Season=2018-19&SeasonSegment=&SeasonType=Regular+Season&StartPeriod=\
+    &StartRange=&TeamID=0&VsConference=&VsDivision=".format(playerId)
+    response2 = requests.get(url,  headers=headers)
+    print(json.loads(response2.content)['resultSets'])
 
 
-print(playerShotData(204054))
+url = "http://stats.nba.com/stats/locations_getmoments?eventid=308&gameid=00414002351"
+response3 = requests.get(url, headers=headers).json()
+print(response3)

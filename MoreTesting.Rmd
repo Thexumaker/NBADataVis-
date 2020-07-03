@@ -1,0 +1,305 @@
+---
+title: "MoreTesting"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("DataGatheringFunc.R")
+```
+
+
+```{r}
+playerDistance <- function(playerName,season) {
+  name <- str_replace_all(playerName, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    if (season != "") {
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      
+    }
+    grouped_distance <- summarise(group_by(playerdf,PERIOD), distance = mean(SHOT_DISTANCE) )
+    return(grouped_distance)
+}
+teamDistance <- function(teamName,season, anotherFilter) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  gameLogdf <- read.csv(paste0("datasets/gameLogs/NBA",str_replace(season, "-", ""),".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  if (nchar(anotherFilter) > 0) {
+    filteredGames <- select(filter(gameLogdf, TEAM_ABBREVIATION == teamName & WL == anotherFilter),GAME_ID)
+
+
+  }
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      if (nchar(anotherFilter) > 0) {
+
+        
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    if (paste0(name,".csv") %in% list.files("datasets/players")) {
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    if (nchar(anotherFilter) > 0) {
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+      }
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+      
+    }
+    
+  }
+   
+}
+  
+  grouped_distance <- summarise(group_by(result, PERIOD), distance = mean(SHOT_DISTANCE))
+  return(grouped_distance)
+}
+playerDistance("Klay Thompson", "2018-19")
+teamDistance("HOU", "2019-20", "")
+teamDistance("HOU", "2019-20", "W")
+teamDistance("HOU", "2019-20", "L")
+```
+```{R}
+teamDistance("LAL", "2019-20", "")
+teamDistance("LAL", "2019-20", "W")
+teamDistance("LAL", "2019-20", "L")
+
+```
+```{r}
+teamDistance("LAL", "2011-12", "")
+teamDistance("LAL", "2011-12", "W")
+teamDistance("LAL", "2011-12", "L")
+
+```
+```{r}
+playerdf <- read.csv(paste0("datasets/players/","LeBronJames",".csv"), stringsAsFactors = FALSE)
+playerdf <- filter(playerdf, PERIOD <= 4)
+playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+ggplot(playerdf, aes(x=as.factor(PERIOD), y = as.numeric(SHOT_DISTANCE))) + geom_boxplot()
+
+    
+    grouped_distance <- group_by(playerdf,PERIOD)
+    grouped_distance
+    count <- count(grouped_distance, SHOT_ATTEMPTED_FLAG)[["n"]]
+    
+    
+    grouped_distance <- summarise(group_by(playerdf,PERIOD),name = max(PLAYER_NAME), distance = mean(SHOT_DISTANCE), CloseRange = sum(SHOT_ZONE_BASIC == "Restricted Area") ,MidRange = sum(SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area"), Threes = sum(SHOT_TYPE == "3PT Field Goal"), Percent3 = Threes/ (Threes + MidRange + CloseRange), Percent2 = MidRange/ (Threes + MidRange + CloseRange), PercentClose = CloseRange/ (Threes + MidRange + CloseRange), ThreePointPercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "3PT Field Goal")/Threes, LayupPercentage = sum(SHOT_MADE_FLAG == 1 & SHOT_ZONE_BASIC == "Restricted Area")/CloseRange, MidRangePercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area")/MidRange  )
+    grouped_distance$NumberofShots = count
+    grouped_distance
+    
+```
+```{r}
+teamDistanceUpgraded <- function(teamName,season, anotherFilter) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  gameLogdf <- read.csv(paste0("datasets/gameLogs/NBA",str_replace(season, "-", ""),".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  if (nchar(anotherFilter) > 0) {
+    filteredGames <- select(filter(gameLogdf, TEAM_ABBREVIATION == teamName & WL == anotherFilter),GAME_ID)
+
+
+  }
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      playerdf <- filter(playerdf, PERIOD <= 4)
+      playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+      if (nchar(anotherFilter) > 0) {
+
+        
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    if (paste0(name,".csv") %in% list.files("datasets/players")) {
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    playerdf <- filter(playerdf, PERIOD <= 4)
+    playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+    if (nchar(anotherFilter) > 0) {
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+      
+    }
+    
+  }
+   
+}
+  
+   grouped_distance <- summarise(group_by(result,PERIOD), distance = mean(SHOT_DISTANCE), CloseRange = sum(SHOT_ZONE_BASIC == "Restricted Area") ,MidRange = sum(SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area"), Threes = sum(SHOT_TYPE == "3PT Field Goal"), Percent3 = Threes/ (Threes + MidRange + CloseRange), Percent2 = MidRange/ (Threes + MidRange + CloseRange), PercentClose = CloseRange/ (Threes + MidRange + CloseRange), ThreePointPercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "3PT Field Goal")/Threes, LayupPercentage = sum(SHOT_MADE_FLAG == 1 & SHOT_ZONE_BASIC == "Restricted Area")/CloseRange, MidRangePercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area")/MidRange  )
+  return(grouped_distance)
+}
+
+#ggplot(playerdf, aes(x=as.factor(PERIOD), y = as.numeric(SHOT_DISTANCE))) + geom_boxplot()
+teamDistanceUpgraded("LAL", "2019-20","")
+
+
+
+    
+    
+    
+
+```
+```{r}
+facetTest <- function(teamName,season, anotherFilter) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  gameLogdf <- read.csv(paste0("datasets/gameLogs/NBA",str_replace(season, "-", ""),".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  if (nchar(anotherFilter) > 0) {
+    filteredGames <- select(filter(gameLogdf, TEAM_ABBREVIATION == teamName & WL == anotherFilter),GAME_ID)
+
+
+  }
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      playerdf <- filter(playerdf, PERIOD <= 4)
+      playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+      if (nchar(anotherFilter) > 0) {
+
+        
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    if (paste0(name,".csv") %in% list.files("datasets/players")) {
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    playerdf <- filter(playerdf, PERIOD <= 4)
+    playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+    if (nchar(anotherFilter) > 0) {
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+      
+    }
+    
+  }
+   
+  }
+  ggplot(result, aes(x=as.factor(PERIOD), y = as.numeric(SHOT_DISTANCE))) + geom_boxplot()+facet_wrap(~ PLAYER_NAME)
+}
+  facetTest("LAL", "2019-20","")
+```
+```{r}
+testing <- function(teamName,season, anotherFilter) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  gameLogdf <- read.csv(paste0("datasets/gameLogs/NBA",str_replace(season, "-", ""),".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  if (nchar(anotherFilter) > 0) {
+    filteredGames <- select(filter(gameLogdf, TEAM_ABBREVIATION == teamName & WL == anotherFilter),GAME_ID)
+
+
+  }
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      playerdf <- filter(playerdf, PERIOD <= 4)
+      playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+      
+      if (nchar(anotherFilter) > 0) {
+
+        
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    if (paste0(name,".csv") %in% list.files("datasets/players")) {
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    playerdf <- filter(playerdf, PERIOD <= 4)
+    
+    playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+    if (nchar(anotherFilter) > 0) {
+        playerdf <- filter(playerdf,GAME_ID %in% filteredGames[[1]] )
+        
+      }
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+      
+    }
+    
+  }
+   
+  }
+ 
+  
+   grouped_distance <- summarise(group_by(result,PERIOD), distance = mean(SHOT_DISTANCE), CloseRange = sum(SHOT_ZONE_BASIC == "Restricted Area") ,MidRange = sum(SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area"), Threes = sum(SHOT_TYPE == "3PT Field Goal"), Percent3 = Threes/ (Threes + MidRange + CloseRange), Percent2 = MidRange/ (Threes + MidRange + CloseRange), PercentClose = CloseRange/ (Threes + MidRange + CloseRange), ThreePointPercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "3PT Field Goal")/Threes, LayupPercentage = sum(SHOT_MADE_FLAG == 1 & SHOT_ZONE_BASIC == "Restricted Area")/CloseRange, MidRangePercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area")/MidRange)
+  return(grouped_distance)
+}
+
+df <- data.frame(Q1=numeric(),
+                 Q2=numeric(), 
+                 Q3=numeric()
+                 ) 
+df
+
+for (team in c("LAL","HOU","LAC","OKC") ) {
+  x <- testing(team,"2019-20","")
+  df[nrow(df) + 1,] = c(x$distance[[2]]-x$distance[[1]],x$distance[[3]]-x$distance[[2]],x$distance[[4]]-x$distance[[3]])
+  
+
+
+}
+df
+
+
+
+```

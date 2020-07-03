@@ -6,6 +6,14 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 source("DataGatheringFunc.R")
+library(plotly)
+library(tidyverse)
+library(ballr)
+library(tictoc)
+
+
+library(hexbin)
+
 ```
 
 
@@ -17,12 +25,97 @@ When you click the **Knit** button a document will be generated that includes bo
 
 
 ```{r}
-playerHeatMap <- function(playerName,season,clarity,restrictedArea) {
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+
+playerShotChart <- function(playerName,season) {
   name <- str_replace_all(playerName, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    if (season != "") {
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      
+    }
+   
+
+  # plot using ggplot and NBA court background image
+ggplot(playerdf, aes(x=LOC_X, y=LOC_Y)) +
+       annotation_custom(court, -250, 250, -50, 420) +
+       geom_point(aes( color = EVENT_TYPE)) +
+       xlim(250, -250) +
+       ylim(-50, 420) +
+       geom_rug(alpha = 0.2) +
+       coord_fixed() +
+       ggtitle(paste("Shot Chart\n", unique(playerdf$PLAYER_NAME), sep = "")) +
+       theme(line = element_blank(),
+             axis.title.x = element_blank(),
+             axis.title.y = element_blank(),
+             axis.text.x = element_blank(),
+             axis.text.y = element_blank(),
+             legend.title = element_blank(),
+             plot.title = element_text(size = 15, lineheight = 0.9, face = "bold"))
+
+  
+}
+teamShotChart <- function(teamName,season) {
+  
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
     playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
     seasonStart = paste0(substring(season,1,4) ,"1011")
     seasonEnd = paste0("20",substring(season,6,7) ,"0430")
     playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+  }
+   
+}
+  shotDataf <- result
+    
+  # plot using ggplot and NBA court background image
+ggplot(shotDataf, aes(x=LOC_X, y=LOC_Y)) +
+       annotation_custom(court, -250, 250, -50, 420) +
+       geom_point(aes( color = shotDataf$PLAYER_NAME)) +
+       xlim(250, -250) +
+       ylim(-50, 420) +
+       geom_rug(alpha = 0.2) +
+       coord_fixed() +
+       theme(line = element_blank(),
+             axis.title.x = element_blank(),
+             axis.title.y = element_blank(),
+             axis.text.x = element_blank(),
+             axis.text.y = element_blank(),
+             legend.title = element_blank(),
+             plot.title = element_text(size = 15, lineheight = 0.9, face = "bold"))
+
+  
+}
+playerHeatMap <- function(playerName,season,clarity,restrictedArea) {
+  name <- str_replace_all(playerName, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    if (season != "") {
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      
+    }
+    
   if (!restrictedArea) {
     playerdf <- filter(playerdf,SHOT_ZONE_BASIC != "Restricted Area")
     
@@ -43,17 +136,15 @@ for ( x in seq(-260,260,by=clarity)) {
     
 heat <- data.frame(xList,yList,count)
 
-courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
-court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
-           width=unit(1,"npc"), height=unit(1,"npc"))
 
 return(ggplot(heat, aes(x=xList, y=yList)) +
         annotation_custom(court, -250, 250, -50, 420) +
 
       xlim(-260, 260) +
       ylim(-60, 420)+
-  geom_tile(aes(fill = count)) +
+  geom_tile(aes(fill = count),interpolate = TRUE) +
   scale_fill_viridis_c(option = "B", direction = -1))
+#trans="log"
   
 
   
@@ -64,6 +155,7 @@ return(ggplot(heat, aes(x=xList, y=yList)) +
     
   
 }
+
 teamHeatMap <- function(teamName,season,clarity,restrictedArea) {
   teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
     temp = 1
@@ -113,9 +205,6 @@ for (player in teamdf$PLAYER){
 heat <- data.frame(xList,yList,count)
 
 
-courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
-court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
-           width=unit(1,"npc"), height=unit(1,"npc"))
 
 return(ggplot(heat, aes(x=xList, y=yList)) +
         annotation_custom(court, -250, 250, -50, 420) +
@@ -201,8 +290,281 @@ return(ggplot(heat, aes(x=xList, y=yList)) +
 
 ```
 ```{r}
-teamHeatMap("GSW", "2012-13",4,FALSE)
-teamHeatMap("GSW", "2016-17",4,FALSE)
-teamHeatMap("GSW", "2018-19",4,FALSE)
+
+teamBubbleMap <- function(teamName,season,clarity,restrictedArea) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+  }
+   
+}
+  shotDataf <- filter(result,SHOT_ZONE_AREA != "Back Court(BC)")
+  if (!restrictedArea) {
+    shotDataf <- filter(shotDataf,SHOT_ZONE_BASIC != "Restricted Area")
+    
+  }
+  
+shotDataf$LOC_X <- as.numeric(as.character(shotDataf$LOC_X))
+shotDataf$LOC_Y <- as.numeric(as.character(shotDataf$LOC_Y))
+xList <- c()
+yList <- c()
+count <- c()
+f <- function(row) {
+
+  x = as.numeric(row[[18]])
+  y = as.numeric(row[[19]])
+  name = row[[5]]
+  
+  nrow(filter(filter(shotDataf, PLAYER_NAME == name & LOC_X >= x - 25 & LOC_X <= x + 25 & LOC_Y >= y - 25 & LOC_Y <= y + 25)))
+
+  
+}
+
+shotDataf$bubble <- apply(shotDataf,1,f)
+
+ggplot(shotDataf, aes(x = LOC_X, y = LOC_Y)) + 
+  
+  geom_point(aes(color = PLAYER_NAME, size = bubble), alpha = 0.25) +
+  
+  scale_size(range = c(.5, 6))  
+# Adjust the range of points size 
+
+ 
+#trans="log"
+
+
+}
+
+
+playerBubbleMap <- function(playerName,season,clarity,restrictedArea) {
+  name <- str_replace_all(playerName, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    if (season != "") {
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      
+    }
+    
+
+  
+  if (!restrictedArea) {
+    playerdf <- filter(playerdf,SHOT_ZONE_BASIC != "Restricted Area")
+    
+  }
+playerdf$LOC_X <- -as.numeric(as.character(playerdf$LOC_X))/10
+
+playerdf$LOC_Y <- as.numeric(as.character(playerdf$LOC_Y))/ 10 + hoop_center_y
+
+ 
+
+xList <- c()
+yList <- c()
+count <- c()
+f <- function(row) {
+
+  x = as.numeric(row[[18]])
+  y = as.numeric(row[[19]])
+  nrow(filter(filter(playerdf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)))
+
+  
+}
+playerdf$bubble <- apply(playerdf,1,f)
+ p <- plot_court()+ 
+  geom_point(data=playerdf,aes(x=LOC_X,y=LOC_Y, color = SHOT_ZONE_BASIC,size= bubble) , alpha = 0.5) +
+  
+  scale_size(range = c(.2, 4)) + 
+   scale_size(range = c(.5, 6))  + # Adjust the range of points size 
+   guides(
+   legend.position = "bottom",
+        legend.text = element_text(size=10,))
+
+#trans="log"
+
+ggsave("Test.png",plot = p ,width = 15, height = 15, dpi = 100)
+
+p
+
+
+  
+
+  
+      
+    
+    
+    
+    
+  
+}
+teamBubbleMap("LAL","2018-19",10,FALSE)
+playerBubbleMap("Lebron James", "2018-19",10,FALSE)
+
+```
+
+```{R}
+playerShotChart("Lebron James", "2018-19")
+```
+
+```{r}
+
+playerHeatMap("Shaun Livingston", "",5,FALSE)
+
+
+```
+```{R}
+leagueAverage = LeagueAverages("2018-19")
+```
+```{r}
+library(viridis)
+
+leagueAverage <- filter(leagueAverage, SHOT_ZONE_AREA != "Back Court(BC)")
+
+avg <- summarise(group_by(leagueAverage, SHOT_ZONE_AREA,SHOT_ZONE_BASIC),shots = sum(FGA),made = sum(FGM), accuracy =made/shots ,percent = round((made/shots)*100,digits=2))
+x <- read.csv("datasets/players/StephenCurry.csv",stringsAsFactors = FALSE)
+
+x <- x[x$SHOT_ZONE_AREA != "Back Court(BC)",]
+
+x$SHOT_ZONE_AREA <- as.factor(x$SHOT_ZONE_AREA)
+
+
+
+avg2 <- summarise(group_by(x,SHOT_ZONE_AREA,SHOT_ZONE_BASIC), shots = sum(SHOT_ATTEMPTED_FLAG),made = sum(SHOT_MADE_FLAG),accuracy=made/shots, percent = round((made/shots)*100,digits=2),MLOC_X = mean(LOC_X),
+        MLOC_Y = mean(LOC_Y))
+avg
+avg2
+avg2$difference <- avg2$percent - avg$percent
+courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+           width=unit(1,"npc"), height=unit(1,"npc"))
+ggplot(avg2, aes(x=MLOC_X, y=MLOC_Y)) + 
+    annotation_custom(court, -250, 250, -52, 418) +
+    geom_point(aes(color = difference, size = shots, alpha = 0.8)) +
+    geom_text(aes(color = difference, label = percent), vjust = -1.2, size = 4) +
+    scale_color_viridis(option = "C") + 
+    
+    
+    guides(alpha = FALSE, size = FALSE) +
+    xlim(250, -250) +
+    ylim(-52, 418) +
+    coord_fixed() +
+    ggtitle(paste("Shot Accuracy\n", unique(x$PLAYER_NAME), sep = "")) 
+  
+
+
+
+```
+```{r}
+playerdf <- read.csv("datasets/players/StephenCurry.csv",stringsAsFactors = FALSE)
+
+
+
+counting <- function(row) {
+  count <- filter(avg2,SHOT_ZONE_BASIC == row[[14]] & SHOT_ZONE_AREA == row[[15]])$percent - filter(avg,SHOT_ZONE_BASIC == row[[14]] & SHOT_ZONE_AREA == row[[15]])$percent 
+  if (is.empty(count)) {
+    count = 0
+  }
+  return(count)
+  
+}
+
+playerdf$count <- apply(playerdf,1, counting)
+playerdf
+
+
+```
+```{r}
+ggplot(playerdf, aes(LOC_X, LOC_Y)) + scale_fill_gradient(low="lightblue1",high="darkblue") + stat_summary_hex(aes(x = LOC_X, y = LOC_Y, z = as.numeric(count)))
+```
+```{r}
+ppsTeam()
+
+```
+```{r}
+teamDistributionMap <- function(teamName,season,clarity,restrictedArea) {
+  teamdf <- read.csv(paste0("datasets/rosters/",teamName,season,".csv"), stringsAsFactors = FALSE)
+  temp = 1
+  for (player in teamdf$PLAYER){
+
+  
+    if (temp == 1){
+      name <- str_replace_all(player, fixed(" "), "")
+      playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+      seasonStart = paste0(substring(season, 1, 4) ,"1011")
+      seasonEnd = paste0("20",substring(season, 6, 7) ,"0430")
+      playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+      result <- playerdf
+      temp = temp + 1
+  }
+  else {
+    name <- str_replace_all(player, fixed(" "), "")
+    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    temp2 <- playerdf
+    result <- rbind(result,temp2)
+  }
+   
+}
+  shotDataf <- filter(result,SHOT_ZONE_AREA != "Back Court(BC)")
+  if (!restrictedArea) {
+    shotDataf <- filter(shotDataf,SHOT_ZONE_BASIC != "Restricted Area")
+    
+  }
+  
+shotDataf$LOC_X <- as.numeric(as.character(shotDataf$LOC_X))
+shotDataf$LOC_Y <- as.numeric(as.character(shotDataf$LOC_Y))
+xList <- c()
+yList <- c()
+count <- c()
+name <- c()
+
+for ( x in seq(-260,260,by=clarity)) {
+  for (y in seq(-60,420,by=clarity)) {
+    for (player in unique(shotDataf$PLAYER_NAME)) {
+      shotsinRegion <- filter(shotDataf, PLAYER_NAME == player, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)
+      xList<- c(xList,mean(shotsinRegion$LOC_X))
+      yList<- c(yList,mean(shotsinRegion$LOC_Y))
+      name <- c(name, player)
+      count <- c(count,nrow(shotsinRegion))
+      
+    }
+    
+    
+  }
+}
+bubble <- data.frame(xList,yList,count,name)
+bubble
+ggplot(bubble, aes(x = xList, y = yList)) + 
+  geom_point(aes(color = name, size = count, alpha=count)) +
+  
+  scale_size(range = c(.1, 8))  
+# Adjust the range of points size 
+
+ 
+#trans="log"
+
+
+}
+teamDistributionMap("LAL","2018-19",25,FALSE)
 
 ```
