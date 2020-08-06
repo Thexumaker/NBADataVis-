@@ -142,12 +142,7 @@ pps()
 
 
 ```{r}
-playerHeatMap("Trae Young","2018-19",100,FALSE)
-playerHeatMap("Trae Young","2018-19",50,FALSE)
-playerHeatMap("Trae Young","2018-19",25,FALSE)
-playerHeatMap("Trae Young","2018-19",4,FALSE)
-playerHeatMap("Trae Young","2018-19",2,FALSE)
-playerHeatMap("Trae Young","2018-19",1.5,FALSE)
+playerHeatMap("LeBron James", "2018-19",20,FALSE,1)
 
 
 ```
@@ -212,51 +207,7 @@ return(test)
 efficientplayerHeatMap("Lonzo Ball","2018-19",5,FALSE)
 
 ```
-```{r}
-playerHeatMap <- function(playerName,season,clarity,restrictedArea) {
-  tic()
-  name <- str_replace_all(playerName, fixed(" "), "")
-    playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
-    if (season != "") {
-    seasonStart = paste0(substring(season,1,4) ,"1011")
-    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
-    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
-      
-    }
-    
-  if (!restrictedArea) {
-    playerdf <- filter(playerdf,SHOT_ZONE_BASIC != "Restricted Area")
-    
-  }
-playerdf$LOC_X <- as.numeric(as.character(playerdf$LOC_X))
-playerdf$LOC_Y <- as.numeric(as.character(playerdf$LOC_Y))
-xList <- c()
-yList <- c()
-count <- c()
-for ( x in seq(-260,260,by=clarity)) {
-  for (y in seq(-60,420,by=clarity)) {
-    
-      xList<- c(xList,x)
-    yList<- c(yList,y)
-    count <- c(count,nrow(filter(playerdf, LOC_X >= x-25 & LOC_X <= x+25 & LOC_Y >= y-25 & LOC_Y <= y+25)))
-  }
-}
-    
-heat <- data.frame(xList,yList,count)
 
-
-return(toc())
-#trans="log"
-  
-
-  
-      
-    
-    
-    
-    
-  
-}
 playerHeatMap("LeBron James","2018-19",2,FALSE)
 ```
 

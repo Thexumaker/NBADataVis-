@@ -1,0 +1,122 @@
+---
+title: "Lebron James vs Ricky Rubio"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("DataGatheringFunc.R")
+library(plotly)
+library(tidyverse)
+library(ballr)
+library(tictoc)
+library(hexbin)
+```
+
+When people talk about Lebron James one of the first ideas that pops up is that he's a ball hog. I mean he turned Kevin Love from perenial all star to essentially a power foward that only shot 3's in order to give Lebron more spacing. The same could be said for Chris Bosch, who kind of settled back behind the 3 point line as well. For an even more recent example, one of the criticisms of the 2018-19 Lakers was that there wasn't enough "spacing" or 3 point shooters for him. 
+So I guess the question is does Lebron really force teams into playing in his scheme rather than adapting to the team and if so how much is he affecting his team's shot distribution. I've also chosen 2 other players, Chris Paul and Ricky Rubio both who are primary ball handlers yet we've never really seen the same ciriticism towards either of them. 
+
+# Obtaining the Data
+  This was one of the biggest challenges of the prject,since there's really only one source of NBA shot data and that's from the NBA stats-api(https://github.com/swar/nba_api). Essentially what I had to do was first to find every NBA player that played from 2009 to 2020. In order to accomplish that I collected team roster data for every team from 2009-2020. From there the NBA stats api had a collection of shot data for every individual player. So from the list of players I collected from the roster data earlier, I filtered out each individual player and put them in their own individual csv file. So now I had team roster data, player shot data, as well as some additional season game info all from the Stats API. 
+  
+# EDA and Data Cleaning
+
+Fortunately for me the data was surprisingly clean. There weren't any outliers, or even much missing info in my data.I thought about excluding the strike shortened 2011 NBA season, but there weren't any drastic changes in that season so I left the season in.
+
+Since the goal of my project was to find if LeBron James really influences his team's gameplan and composition and gameplan so much I was curious to see how the NBA may have changed from 2009 to 2010.
+```{r}
+teamHeatMap("OKC","2009-10",15,FALSE,5,"")
+teamHeatMap("OKC","2013-14",15,FALSE,5,"")
+teamHeatMap("OKC","2019-20",15,FALSE,5,"")
+```
+What I saw consistently was that the NBA has changed quite a bit since 2009. With most of the changes to the league really occuring after that 2013-14 season where Steph Curry shocked the world and demonstrated the efficiency of taking a boatload of 3's. 
+
+
+
+Obviously I could just pull the stats and tell you that the Cav's shot 3% more corner 3's after Lebron left. I don't think that's my intention. This project wasn't meant to be heavilily statisitical but rather just an exploration into different visuals to help explore NBA data. If you think this is fascinating you could go much further and pull up actualy percentages or even model the kind of impact Lebron would have on each time. I'm trying to answer does Lebron seem to have an effect on his team's gameplans or is that just something that happens for every ball dominant player. 
+
+To do this let's begin by looking at the heatmaps of each team that Lebron was on. For teams that he left I will be displaying the heatmap of when he was on the team and afterwards. And for teams he joins I'll be showing the team before he joins and after he joins.
+
+Lebron has changed teams several times but he has:
+
+- left the Cavs in 2010 for the Miami Heat
+
+- He left the Heat for the cavs after the 2013-14 season
+
+- He left for the Lakers after the 2017-18 season
+
+
+
+```{r}
+teamHeatMap("CLE","2009-10",15,FALSE,5,"")
+teamHeatMap("CLE","2010-11",15,FALSE,5,"")
+
+teamHeatMap("MIA","2009-10",15,FALSE,5,"")
+teamHeatMap("MIA","2010-11",15,FALSE,5,"")
+
+
+teamHeatMap("CLE","2013-14",15,FALSE,5,"")
+teamHeatMap("CLE","2014-15",15,FALSE,5,"")
+
+teamHeatMap("MIA","2013-14",15,FALSE,5,"")
+teamHeatMap("MIA","2014-15",15,FALSE,5,"")
+
+teamHeatMap("CLE","2017-18",15,FALSE,5,"")
+teamHeatMap("CLE","2018-19",15,FALSE,5,"")
+
+teamHeatMap("LAL","2017-18",15,FALSE,5,"")
+teamHeatMap("LAL","2018-19",15,FALSE,5,"")
+```
+```{r}
+
+teamHeatMap("NOH","2010-11",15,FALSE,5,"")
+teamHeatMap("NOH","2011-12",15,FALSE,5,"")
+
+teamHeatMap("LAC","2010-11",15,FALSE,5,"")
+teamHeatMap("LAC","2011-12",15,FALSE,5,"")
+
+
+teamHeatMap("LAC","2016-17",15,FALSE,5,"")
+teamHeatMap("LAC","2017-18",15,FALSE,5,"")
+
+teamHeatMap("HOU","2016-17",15,FALSE,5,"")
+teamHeatMap("HOU","2017-18",15,FALSE,5,"")
+
+teamHeatMap("HOU","2018-19",15,FALSE,5,"")
+teamHeatMap("HOU","2019-20",15,FALSE,5,"")
+
+teamHeatMap("OKC","2018-19",15,FALSE,5,"")
+teamHeatMap("OKC","2019-20",15,FALSE,5,"")
+```
+
+
+```{r}
+
+teamHeatMap("MIN","2016-17",15,FALSE,5,"")
+teamHeatMap("MIN","2017-18",15,FALSE,5,"")
+
+teamHeatMap("UTA","2016-17",15,FALSE,5,"")
+teamHeatMap("UTA","2017-18",15,FALSE,5,"")
+
+
+teamHeatMap("UTA","2018-19",15,FALSE,5,"")
+teamHeatMap("UTA","2019-20",15,FALSE,5,"")
+
+teamHeatMap("PHX","2018-19",15,FALSE,5,"")
+teamHeatMap("PHX","2019-20",15,FALSE,5,"")
+```
+```{r}
+
+
+teamDistributionData2("CLE","2009-10")
+teamDistributionData2("CLE","2010-11")
+
+teamDistributionData2("MIA","2009-10")
+teamDistributionData2("MIA","2010-11")
+
+```
+What you'll notice is that despite the overall league trend towards increasing numbers of 3's and less and less long midrange shots, is that the teams LeBron leaves immediately begins shooting less 3's. Even in the 2018-19 season on a LA Lakers team whose best 3 point shooter might've been LeBron himself, the team took an increasing proportion of 3's. What's most noticeable is that for teams he leaves, they begin shooting much much more mid range shots. 
+
+Even for other ball dominant guards such as Chris Paul or Ricky Rubio, while they do seem to help get more open looks for their respective teams, they don't seem to have the same pull as LeBron. Chris Paul specifically seems to play into whatever team he's on. On the OKC Thunder in the 2019-20, they've been taking a shocking proportion of midrange shots, while on the Rockets he helped play into their strategy of 3's or dunks.
+
+I think the saying about LeBron that he needs shooters around him is pretty accurate. We saw the Lakers put countless amounts of playmakers around LeBron in that 2018-19 season yet they still took more 3's than ever. 

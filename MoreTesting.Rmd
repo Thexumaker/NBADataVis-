@@ -89,20 +89,27 @@ teamDistance("LAL", "2011-12", "L")
 
 ```
 ```{r}
-playerdf <- read.csv(paste0("datasets/players/","LeBronJames",".csv"), stringsAsFactors = FALSE)
-playerdf <- filter(playerdf, PERIOD <= 4)
-playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
-ggplot(playerdf, aes(x=as.factor(PERIOD), y = as.numeric(SHOT_DISTANCE))) + geom_boxplot()
+playerDistributionData <- function(name,season) {
+  print(paste0("datasets/players/",name,".csv"))
+  
+  playerdf <- read.csv(paste0("datasets/players/",name,".csv"), stringsAsFactors = FALSE)
+  playerdf <- filter(playerdf, PERIOD <= 4)
+  playerdf <- filter(playerdf, SHOT_ZONE_AREA != "Back Court(BC)")
+  if (season != "") {
+    seasonStart = paste0(substring(season,1,4) ,"1011")
+    seasonEnd = paste0("20",substring(season,6,7) ,"0430")
+    playerdf <- filter(playerdf, GAME_DATE < as.numeric(seasonEnd) & GAME_DATE > seasonStart)
+    
+  }
+  grouped_distance <- group_by(playerdf,PERIOD)
+  grouped_distance
+  count <- count(grouped_distance, SHOT_ATTEMPTED_FLAG)[["n"]]
+  grouped_distance <- summarise(group_by(playerdf,PERIOD),name = max(PLAYER_NAME), distance = mean(SHOT_DISTANCE), CloseRange = sum(SHOT_ZONE_BASIC == "Restricted Area") ,MidRange = sum(SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area"), Threes = sum(SHOT_TYPE == "3PT Field Goal"), Percent3 = Threes/ (Threes + MidRange + CloseRange), Percent2 = MidRange/ (Threes + MidRange + CloseRange), PercentClose = CloseRange/ (Threes + MidRange + CloseRange), ThreePointPercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "3PT Field Goal")/Threes, LayupPercentage = sum(SHOT_MADE_FLAG == 1 & SHOT_ZONE_BASIC == "Restricted Area")/CloseRange, MidRangePercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area")/MidRange  )
+  grouped_distance$NumberofShots = count
+  grouped_distance
+}
+playerDistributionData("LonzoBall", "2018-19")
 
-    
-    grouped_distance <- group_by(playerdf,PERIOD)
-    grouped_distance
-    count <- count(grouped_distance, SHOT_ATTEMPTED_FLAG)[["n"]]
-    
-    
-    grouped_distance <- summarise(group_by(playerdf,PERIOD),name = max(PLAYER_NAME), distance = mean(SHOT_DISTANCE), CloseRange = sum(SHOT_ZONE_BASIC == "Restricted Area") ,MidRange = sum(SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area"), Threes = sum(SHOT_TYPE == "3PT Field Goal"), Percent3 = Threes/ (Threes + MidRange + CloseRange), Percent2 = MidRange/ (Threes + MidRange + CloseRange), PercentClose = CloseRange/ (Threes + MidRange + CloseRange), ThreePointPercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "3PT Field Goal")/Threes, LayupPercentage = sum(SHOT_MADE_FLAG == 1 & SHOT_ZONE_BASIC == "Restricted Area")/CloseRange, MidRangePercentage = sum(SHOT_MADE_FLAG == 1& SHOT_TYPE == "2PT Field Goal" & SHOT_ZONE_BASIC != "Restricted Area")/MidRange  )
-    grouped_distance$NumberofShots = count
-    grouped_distance
     
 ```
 ```{r}
@@ -302,4 +309,7 @@ df
 
 
 
+```
+```{r}
+playerDistributionPlot("Javale Mcgee","2018-19")
 ```
